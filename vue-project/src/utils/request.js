@@ -1,34 +1,26 @@
-// src/utils/requests.js
 import axios from 'axios';
-import { ElMessage } from 'element-plus'; // 如果您使用Element Plus
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 创建axios实例
 const instance = axios.create({
   baseURL: 'http://localhost:8000/',
-  timeout: 10000, // 增加超时时间
-
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json;charset=utf-8' }
 });
 
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    // 在发送请求之前做些什么
-    // 从 localStorage 获取 token 并注入到请求头
-    try {
-      const token = localStorage.getItem('token')
-      if (token) {
-        config.headers = config.headers || {}
-        config.headers.Authorization = `Bearer ${token}`
-      }
-    } catch (err) {
-      console.warn('注入 token 失败', err)
+    // Token注入
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token && token.trim()) {
+      config.headers.Authorization = `Bearer ${token.trim()}`;
     }
-
     return config;
   },
   (error) => {
-    // 对请求错误做些什么
-    console.error('请求错误:', error);
+    console.error('请求初始化错误:', error);
+    ElMessage.error('请求发送失败');
     return Promise.reject(error);
   }
 );
@@ -36,74 +28,60 @@ instance.interceptors.request.use(
 // 响应拦截器
 instance.interceptors.response.use(
   (response) => {
-    // 2xx 范围内的状态码都会触发该函数
-    // 对响应数据做点什么
-    console.log('收到响应:', response.status, response.data);
-        if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // 根据您的API结构调整
-    if (response.data && response.data.code === 200) {
-      return response.data;
-    } else {
-      return Promise.reject(response.data);
-    }
+    // 直接返回后端原始数据（核心：不做格式包装，避免数据丢失）
+    console.log('后端原始响应:', response.data);
+    return response.data;
   },
   (error) => {
-    // 超出 2xx 范围的状态码都会触发该函数
-    // 对响应错误做点什么
-    console.error('响应错误:', error);
-    
-    if (error.response) {
-      // 服务器返回了错误状态码
-      const { status, data } = error.response;
-      
-      switch (status) {
-        case 400:
-          ElMessage.error(data.message || '请求参数错误');
-          break;
-        case 401:
-          ElMessage.error('未授权，请重新登录');
+    // 取消请求不提示错误
+    if (axios.isCancel(error)) {
+      console.warn('请求已取消:', error.message);
+      return Promise.reject({ isCancel: true, message: error.message });
+    }
+
+    // 网络错误/无响应
+    if (!error.response) {
+      ElMessage.error(error.message.includes('timeout') ? '请求超时，请重试' : '网络异常，请检查后端服务');
+      return Promise.reject(error);
+    }
+
+    // HTTP状态码错误处理
+    const { status, data } = error.response;
+    const errorMsg = data?.msg || data?.message || '操作失败';
+
+    switch (status) {
+      case 401:
+        ElMessageBox.confirm(
+          '登录状态已过期，请重新登录',
+          '权限验证失败',
+          {
+            confirmButtonText: '去登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
           localStorage.removeItem('token');
           sessionStorage.removeItem('token');
-          // 跳转到登录页
-          window.location.href = '/login';
-          break;
-        case 403:
-          ElMessage.error('拒绝访问');
-          break;
-        case 404:
-          ElMessage.error('请求资源不存在');
-          break;
-        case 500:
-          ElMessage.error(data.message || '服务器内部错误');
-          break;
-        case 502:
-          ElMessage.error('网关错误');
-          break;
-        case 503:
-          ElMessage.error('服务不可用');
-          break;
-        case 504:
-          ElMessage.error('网关超时');
-          break;
-        default:
-          ElMessage.error(`连接错误${status}`);
-      }
-    } else if (error.request) {
-      // 请求已经成功发起，但没有收到响应
-      ElMessage.error('网络异常，请检查网络连接');
-    } else {
-      // 发送请求时出了点问题
-      ElMessage.error('请求失败，请稍后重试');
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.href)}`;
+        });
+        break;
+      case 403:
+        ElMessage.error(`权限拒绝：${errorMsg}`);
+        break;
+      case 404:
+        ElMessage.error(`资源不存在：${errorMsg}`);
+        break;
+      case 500:
+        ElMessage.error(`服务器错误：${errorMsg}`);
+        break;
+      default:
+        ElMessage.error(`请求失败 [${status}]：${errorMsg}`);
     }
-    
     return Promise.reject(error);
   }
 );
 
-// 封装通用请求方法
+// 封装请求方法
 export const request = {
   get(url, params = {}, config = {}) {
     return instance.get(url, { params, ...config });
@@ -116,11 +94,7 @@ export const request = {
   },
   delete(url, config = {}) {
     return instance.delete(url, config);
-  },
-  patch(url, data = {}, config = {}) {
-    return instance.patch(url, data, config);
   }
 };
 
-// 默认导出实例
 export default instance;

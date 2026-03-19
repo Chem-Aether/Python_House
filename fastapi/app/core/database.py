@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # 数据库连接URL
-DATABASE_URL = "mysql+aiomysql://root:123456@localhost:3306/django3ahrxq75?charset=utf8mb4"
+DATABASE_URL = "mysql+aiomysql://root:123456@localhost:3306/pyhouse?charset=utf8mb4"
 
 # 创建异步引擎
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)

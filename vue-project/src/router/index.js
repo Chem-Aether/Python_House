@@ -24,6 +24,7 @@ const routes = [
       { path: 'city', component: () => import('@/views/admin/City.vue') },
       { path: 'news', component: () => import('@/views/admin/News.vue') },
       { path: 'sysconfig', component: () => import('@/views/admin/Sysconfig.vue') },
+      { path: 'board', component: () => import('@/views/admin/Board.vue') },
     ]
   }
 ];

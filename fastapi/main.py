@@ -11,10 +11,10 @@ async def lifespan(app: FastAPI):
     # 启动时打印欢迎信息
     print("╔══════════════════════════════════════════════════════╗")
     print("║                                                      ║")
-    print("║               欢迎使用  API                   ║")
+    print("║               欢迎使用  二手房交易系统                   ║")
     print("║                                                      ║")
-    print("║           🚀 服务器启动成功！                         ║")
-    print("║           📊 数据库: mySQL                       ║")
+    print("║           🚀 服务器启动成功！                           ║")
+    print("║           📊 数据库: mySQL                            ║")
     print("║           🌐 访问地址: http://localhost:8000          ║")
     print("║           📚 API文档: http://localhost:8000/docs      ║")
     print("║                                                      ║")
@@ -26,10 +26,10 @@ async def lifespan(app: FastAPI):
 
     # 关闭时打印再见信息
     print("\n╔══════════════════════════════════════════════════════╗")
-    print("║                                                      ║")
-    print("║             API 服务器已关闭                  ║")
-    print("║                再见！👋                              ║")
-    print("║                                                      ║")
+    print("║                                                        ║")
+    print("║             API 服务器已关闭                             ║")
+    print("║                再见！👋                                ║")
+    print("║                                                       ║")
     print("╚══════════════════════════════════════════════════════╝")
 
 
