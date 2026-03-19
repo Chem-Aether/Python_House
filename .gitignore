@@ -17,16 +17,20 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
-# Editor directories and files
-.vscode
-vue-project/.vscode
+# 排除所有层级的 .vscode 目录，仅保留根目录的 extensions.json
+**/.vscode/
 .vscode/*
-!.vscode/extensions.json
-.idea
+
+# 排除 IDEA 编辑器文件
+.idea/
+
+# Visual Studio 相关文件
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+
+# 临时文件/缓存文件
 *.sw?
 
 **/__pycache__/
