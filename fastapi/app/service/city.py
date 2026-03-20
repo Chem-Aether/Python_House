@@ -1,5 +1,5 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
+from sqlmodel import select, func
 from ..models.city import City
 from ..schemas.city import CityCreate
 from typing import List, Optional
@@ -27,6 +27,19 @@ class CityService:
         stmt = stmt.offset(skip).limit(limit)
         result = await session.exec(stmt)
         return result.all()
+
+    @staticmethod
+    async def count_cities(session: AsyncSession, q: str | None = None):
+        query = select(func.count(City.id))  # 统计主键数量
+        # 模糊搜索条件（同步修复 None 处理）
+        if q:
+            query = query.where(
+                City.id.contains(q) |
+                (City.address.is_not(None) & City.address.contains(q))
+            )
+        result = await session.exec(query)
+        # 修复：新版本用 .one() 替代 .scalar()
+        return result.one()  # 关键修复点
 
     @staticmethod
     async def update_city(session: AsyncSession, city_id: int, data: CityCreate) -> Optional[City]:

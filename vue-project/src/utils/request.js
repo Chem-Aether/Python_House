@@ -25,10 +25,9 @@ instance.interceptors.request.use(
   }
 );
 
-// 响应拦截器
+// 响应拦截器（核心修改：精准判断 401 原因，避免误退出）
 instance.interceptors.response.use(
   (response) => {
-    // 直接返回后端原始数据（核心：不做格式包装，避免数据丢失）
     console.log('后端原始响应:', response.data);
     return response.data;
   },
@@ -39,7 +38,7 @@ instance.interceptors.response.use(
       return Promise.reject({ isCancel: true, message: error.message });
     }
 
-    // 网络错误/无响应
+    // 网络错误/无响应（不触发退出）
     if (!error.response) {
       ElMessage.error(error.message.includes('timeout') ? '请求超时，请重试' : '网络异常，请检查后端服务');
       return Promise.reject(error);
@@ -47,10 +46,20 @@ instance.interceptors.response.use(
 
     // HTTP状态码错误处理
     const { status, data } = error.response;
-    const errorMsg = data?.msg || data?.message || '操作失败';
+    const errorMsg = data?.msg || data?.message || data?.detail || '操作失败';
 
-    switch (status) {
-      case 401:
+    // ===================== 核心修改：精准判断 401 场景 =====================
+    if (status === 401) {
+      // 只在后端明确返回「Token 无效/过期」时才触发退出
+      const needLogout = [
+        '无效 token', 
+        'Token 已过期', 
+        '登录状态已过期', 
+        '未授权',
+        '账号或密码错误' // 登录接口的 401 不触发（但登录接口一般不会走这里）
+      ].some(keyword => errorMsg.includes(keyword));
+
+      if (needLogout) {
         ElMessageBox.confirm(
           '登录状态已过期，请重新登录',
           '权限验证失败',
@@ -64,19 +73,22 @@ instance.interceptors.response.use(
           sessionStorage.removeItem('token');
           window.location.href = `/login?redirect=${encodeURIComponent(window.location.href)}`;
         });
-        break;
-      case 403:
-        ElMessage.error(`权限拒绝：${errorMsg}`);
-        break;
-      case 404:
-        ElMessage.error(`资源不存在：${errorMsg}`);
-        break;
-      case 500:
-        ElMessage.error(`服务器错误：${errorMsg}`);
-        break;
-      default:
-        ElMessage.error(`请求失败 [${status}]：${errorMsg}`);
+      } else {
+        // 其他 401 场景（如 Token 格式错、路由错）只提示，不退出
+        ElMessage.error(`权限验证失败：${errorMsg}`);
+      }
+    } 
+    // 其他状态码处理（保持不变，不触发退出）
+    else if (status === 403) {
+      ElMessage.error(`权限拒绝：${errorMsg}`);
+    } else if (status === 404) {
+      ElMessage.error(`资源不存在：${errorMsg}`);
+    } else if (status === 500) {
+      ElMessage.error(`服务器错误：${errorMsg}`);
+    } else {
+      ElMessage.error(`请求失败 [${status}]：${errorMsg}`);
     }
+    
     return Promise.reject(error);
   }
 );

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from ..core.database import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..service.city import CityService
-from ..schemas.city import CityCreate, CityRead
+from ..schemas.city import CityCreate, CityRead, PageResponse
 
 # 简单管理员校验：从 Authorization header 读取 Bearer token，并检查 token 在 auth 模块的 TOKENS 中且 role 为 'admin'
 from ..api.auth import TOKENS
@@ -20,11 +20,26 @@ async def admin_required(authorization: str | None = Header(None)):
 router = APIRouter(prefix='/city', tags=['city'])
 
 
-@router.get('/', response_model=list[CityRead])
-async def list_cities(page: int = 1, page_size: int = 20, q: str | None = None, session: AsyncSession = Depends(get_session), _u=Depends(admin_required)):
+# 修改后的接口：返回分页对象
+@router.get('/', response_model=PageResponse[CityRead])  # 改为分页模型
+async def list_cities(
+    page: int = 1,
+    page_size: int = 20,
+    q: str | None = None,
+    session: AsyncSession = Depends(get_session)
+):
     skip = (page - 1) * page_size
+    # 1. 查询当前页数据
     items = await CityService.list_cities(session, skip=skip, limit=page_size, q=q)
-    return items
+    # 2. 查询总条数（需要在 Service 中添加统计方法）
+    total = await CityService.count_cities(session, q=q)  # 新增统计总条数
+    # 3. 返回分页对象
+    return PageResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size
+    )
 
 
 @router.post('/', response_model=CityRead)
@@ -34,7 +49,7 @@ async def create_city(payload: CityCreate, session: AsyncSession = Depends(get_s
 
 
 @router.get('/{city_id}', response_model=CityRead)
-async def get_city(city_id: int, session: AsyncSession = Depends(get_session), _u=Depends(admin_required)):
+async def get_city(city_id: int, session: AsyncSession = Depends(get_session)):
     city = await CityService.get_city(session, city_id)
     if not city:
         raise HTTPException(status_code=404, detail='Not found')

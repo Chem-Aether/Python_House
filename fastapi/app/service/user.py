@@ -30,8 +30,21 @@ class UserService:
         return result.first()
 
     @staticmethod
-    async def get_users(session: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
-        result = await session.exec(select(User).offset(skip).limit(limit))
+    async def get_users(session: AsyncSession, skip: int = 0, limit: int = 100, zhanghao: str = None,
+                        xingming: str = None):
+        """获取用户列表（支持搜索）"""
+        query = select(User)  # 假设你的 User 模型是 sqlmodel 定义的
+
+        # 新增：添加搜索条件
+        if zhanghao:
+            query = query.where(User.zhanghao.like(f"%{zhanghao}%"))
+        if xingming:
+            query = query.where(User.xingming.like(f"%{xingming}%"))
+
+        # 分页
+        query = query.offset(skip).limit(limit)
+
+        result = await session.exec(query)
         return result.all()
 
     @staticmethod

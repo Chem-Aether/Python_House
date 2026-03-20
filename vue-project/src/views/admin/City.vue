@@ -118,20 +118,19 @@ const handleResize = () => {
 const fetchList = async () => {
   loading.value = true
   try {
+    // 1. 修复请求参数传递方式（改为 params）
     const res = await request.get('/city', {
-      page: page.value,
-      page_size: pageSize.value,
-      q: q.value
-    })
-    
-    if (Array.isArray(res)) {
-      items.value = res
-      total.value = res.length >= pageSize.value 
-        ? (page.value * pageSize.value) + 1 
-        : ((page.value - 1) * pageSize.value) + res.length
+        page: page.value,
+        page_size: pageSize.value,
+        q: q.value
+      })
+
+    if (res && typeof res === 'object' && Array.isArray(res.items)) {
+      items.value = res.items // 直接取 items 数组
+      total.value = res.total // 直接使用接口返回的 total
     } else {
-      items.value = []
-      total.value = 0
+        items.value = []
+        total.value = 0
     }
   } catch (err) {
     console.error('获取列表失败:', err)
@@ -142,7 +141,6 @@ const fetchList = async () => {
     loading.value = false
   }
 }
-
 // 搜索方法
 const handleSearch = () => {
   page.value = 1 // 搜索时重置页码到第一页

@@ -63,7 +63,7 @@ async def root():
     return {
         "message": "Welcome to admin API",
         "docs": "/docs",
-        "database": "PostgreSQL"
+        "database": "mySQL"
     }
 
 

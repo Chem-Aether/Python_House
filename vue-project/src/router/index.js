@@ -3,8 +3,20 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 // 定义路由
 const routes = [
+  { path: '/', redirect: '/home/main/'},
   { path: '/login', component: () => import('@/views/Login.vue') },
   { path: '/register', component: () => import('@/views/Register.vue') },
+  { 
+    path: '/home', 
+    component: () => import('@/views/Home.vue'),
+    children: [
+      { path: 'houseDetail', component: () => import('@/views/main/HouseDetail.vue')},
+      { path: 'newsDetail', component: () => import('@/views/main/NewsDetail.vue')},
+      { path: 'main', component: () => import('@/views/main/MainHome.vue') },
+      { path: 'secondhand', component: () => import('@/views/main/Secondhand.vue') },
+      { path: 'announcement', component: () => import('@/views/main/Announcement.vue') },
+  ]
+  },
   {
     path: '/user',
     component: () => import('@/views/user/Layout.vue'),
